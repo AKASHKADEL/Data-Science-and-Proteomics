@@ -1,6 +1,8 @@
 from sklearn import metrics
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.metrics import precision_score,recall_score,average_precision_score
+
 
 def calculate_AUC(predicted, actual):
     #Inputs are 2-D numpy arrays
@@ -118,3 +120,46 @@ def plot_GoTerm_Bars(score_list, label, org, metric = 'AUC'):
     plt.yticks(np.arange(-0.5, 0.6, 0.1), np.arange(0, 1.1, 0.1))
     plt.show()
 
+# --------------------------------------------- Added a bunch of other evaluation metrics that may or may not be used--------
+def round_manual(data, threshold):
+    return (data >= threshold).astype(int)
+
+def F_score(precision_score, recall_score):
+    return ((2*precision_score*recall_score) / (precision_score + recall_score))
+
+def calculate_accuracy(predicted, actuals, num_labels, threshold):
+    """
+    @param predicted: data type = Variable
+    @param actuals: data type = Variable
+    @param num_labels: no of go terms
+    @return: accuracy measure
+    """
+    predicted = round_manual(predicted.data.numpy(), threshold)
+    total_predictions = actuals.size()[0]
+    accuracy = np.sum(predicted==actuals.data.numpy())/(total_predictions*num_labels)
+    return accuracy
+
+def average_precision(predicted, actuals, threshold):
+    """
+    @param predicted: data type = Variable
+    @param actuals: data type = Variable
+    @param num_labels: no of go terms
+    @return: precision
+    """
+    actuals = actuals.data.numpy()
+    predicted = round_manual(predicted.data.numpy(), threshold)
+    non_zero_go_terms = np.count_nonzero((np.sum(actuals, axis=0)!=0).astype(int))
+    return np.sum(precision_score(actuals, predicted, average=None))/non_zero_go_terms
+    
+def average_recall(predicted, actuals, threshold):
+    """
+    @param predicted: data type = Variable
+    @param actuals: data type = Variable
+    @param num_labels: no of go terms
+    @return: recall
+    """
+    actuals = actuals.data.numpy()
+    predicted = round_manual(predicted.data.numpy(), threshold)
+    non_zero_go_terms = np.count_nonzero((np.sum(actuals, axis=0)!=0).astype(int))
+    return np.sum(recall_score(actuals, predicted, average=None))/non_zero_go_terms
+# ----------------------------------------------------------------------------------------------------------------------------
