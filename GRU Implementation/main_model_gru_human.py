@@ -26,7 +26,7 @@ parser.add_argument('--USE_CUDA', action='store_true', help='IF USE CUDA (Defaul
 parser.add_argument('--hidden_size', type=int, default=100, help='Size of hidden layer')
 parser.add_argument('--emb_dim', type=int, default=100, help='Embedding dimensions')
 parser.add_argument('--n_epochs', type=int, default=10, help='Number of single iterations through the data')
-parser.add_argument('--batch_size', type=int, default=80, help='Batch size')
+parser.add_argument('--batch_size', type=int, default=50, help='Batch size')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate (for both, encoder and decoder)')
 parser.add_argument('--n_layers', type=int, default=1, help='Number of layers (for both, encoder and decoder)')
 parser.add_argument('--eval_every', type=int, default=10, help='percentage of num iterations before evaluation')

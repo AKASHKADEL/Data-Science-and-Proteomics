@@ -226,12 +226,18 @@ def eval_iter(batch_size,sequence_tensors,labels):
 
 # The below function is useful when we want to extract a smaller subset of data from a larger subset.
 def reduced_set(sequence, sequence_lengths, sequence_y, size):
+
+    order = list(range(sequence.size()[0]))
+    random.shuffle(order)
+    order = order[:size]
+    sequence = torch.from_numpy(sequence.numpy()[order])
+    sequence_lengths = torch.from_numpy(sequence_lengths.numpy()[order])
     max_len = sequence_lengths[:size].max()
     return sequence[:size, :max_len], sequence_y[:size]
 
 
 
-def evaluate_and_save(output_file,val_outputs,valid_label,losses,val_loss,organism=organism,epoch=epoch):
+def evaluate_and_save(output_file,val_outputs,valid_label,losses,val_loss,organism="organism",epoch="epoch"):
     predictions = val_outputs.cpu().data.numpy()
     actual = valid_label.numpy()
     tloss = np.mean(losses)
