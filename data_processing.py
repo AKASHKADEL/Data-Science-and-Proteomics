@@ -228,3 +228,19 @@ def eval_iter(batch_size,sequence_tensors,labels):
 def reduced_set(sequence, sequence_lengths, sequence_y, size):
     max_len = sequence_lengths[:size].max()
     return sequence[:size, :max_len], sequence_y[:size]
+
+
+
+def evaluate_and_save(output_file,val_outputs,valid_label,losses,val_loss,organism=organism,epoch=epoch):
+    predictions = val_outputs.cpu().data.numpy()
+    actual = valid_label.numpy()
+    tloss = np.mean(losses)
+    vloss = val_loss
+    micAUC = em.calculate_AUC(predictions,actual)[0]
+    micAUPR = em.calculate_AUPR(predictions,actual)
+    macAUC = em.calculate_macro_AUC(predictions,actual)
+    macAUPR = em.calculate_macro_AUPR(predictions,actual)
+    F1 = em.calculate_micro_F1(predictions,actual)
+
+    torch.save(model.state_dict(),output_file+'%sEpoch%s|TrainLoss:%0.4f|ValLoss:%0.4f|micAUC:%0.4f|micAUPR:%0.4f|macAUC:%0.4f|macAUPR:%0.4f|F1:%0.4f'\
+			% (organism,epoch,tloss,vloss,micAUC,micAUPR,macAUC,macAUPR,F1))
