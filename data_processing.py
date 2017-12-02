@@ -233,7 +233,7 @@ def reduced_set(sequence, sequence_lengths, sequence_y, size):
     sequence = torch.from_numpy(sequence.numpy()[order])
     sequence_lengths = torch.from_numpy(sequence_lengths.numpy()[order])
     max_len = sequence_lengths[:size].max()
-    return sequence[:size, :max_len], sequence_y[:size]
+    return sequence[:size, :max_len], sequence_y[:size], sequence_lengths
 
 
 
