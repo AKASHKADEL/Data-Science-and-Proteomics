@@ -238,7 +238,7 @@ def reduced_set(sequence, sequence_lengths, sequence_y, size):
 
 
 
-def evaluate_and_save(output_file,val_outputs,valid_label,losses,val_loss,organism="organism",epoch="epoch"):
+def evaluate_and_save(model,output_file,val_outputs,valid_label,losses,val_loss,organism="organism",epoch="epoch"):
     predictions = val_outputs.cpu().data.numpy()
     actual = valid_label.numpy()
     tloss = np.mean(losses)
