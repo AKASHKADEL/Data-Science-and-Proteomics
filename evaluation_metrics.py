@@ -65,7 +65,7 @@ def AUC_parameters(org):
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate', size=14)
     plt.ylabel('True Positive Rate', size=14)
-    plt.title('ROC Curves for Models: '+org, size=20)
+    plt.title('ROC Curves: '+org, size=20)
 
 def AUPR_parameters(org):
     plt.figure(figsize=[8,8])
@@ -103,7 +103,41 @@ def plot_AUPR_curve(predicted, actual, label, org):
     FmaxIndex = list(FScores).index(Fmax)
     plt.plot(recall, precision, lw=2, label=label+' (MicroAUPR = %0.2f, FMax = %0.2f)' % (AUPR, Fmax))
     plt.plot(recall[FmaxIndex], precision[FmaxIndex], '-bo', markersize=12)
-    plt.legend(loc="lower right")
+    plt.legend(loc="upper right")
+
+def plot_multiple_AUC_curves(predicted_list, actual, label_list, org):
+    #predicted_list: a list of 2-D prediction arrays. One from FastText, one from LSTM, etc.
+    #actual: 2-D array of outputs that is consistent across all model types
+    #Label_list corresponds to a list of model types as strings -- e.g. ['FastText', 'LSTM', 'GRU']
+    #org corresponds to an organism type -- e.g. 'Human'
+    ColorDict = {0:'blue', 1:'orange', 2:'green', 3: 'purple', 4: 'red', 5: 'turquoise'}
+    AUC_parameters(org)
+    for i in range(len(predicted_list)):
+        predicted = predicted_list[i]
+        AUC, fpr, tpr = calculate_AUC(predicted, actual)
+        co = ColorDict[i]
+        plt.plot(fpr, tpr, lw=2, color=co, label=label_list[i]+' (MicroAUC = %0.2f)' % AUC)
+        plt.legend(loc="lower right")
+
+def plot_multiple_AUPR_curves(predicted_list, actual, label_list, org):
+    #predicted_list: a list of 2-D prediction arrays. One from FastText, one from LSTM, etc.
+    #actual: 2-D array of outputs that is consistent across all model types
+    #Label_list corresponds to a list of model types as strings -- e.g. ['FastText', 'LSTM', 'GRU']
+    #org corresponds to an organism type -- e.g. 'Human'
+
+    ColorDict = {0:'blue', 1:'orange', 2:'green', 3: 'purple', 4: 'red', 5: 'turquoise'}
+    AUPR_parameters(org)
+    for i in range(len(predicted_list)):
+        predicted = predicted_list[i]
+        AUPR = calculate_AUPR(predicted, actual)
+        precision, recall,_ = metrics.precision_recall_curve(actual.ravel(), predicted.ravel(), pos_label=1)
+        FScores = 2*precision*recall/(precision+recall)
+        Fmax = max(FScores)
+        FmaxIndex = list(FScores).index(Fmax)
+        co = ColorDict[i]
+        plt.plot(recall, precision, lw=2, color=co, label=label_list[i]+' (MicroAUPR = %0.2f, FMax = %0.2f)' % (AUPR, Fmax))
+        plt.plot(recall[FmaxIndex], precision[FmaxIndex], color=co, marker='o', markersize=12)
+        plt.legend(loc="upper right")
 
 
 def plot_GoTerm_Bars(score_list, label, org, metric = 'AUC'):
