@@ -25,6 +25,10 @@ def calculate_macro_AUPR(predicted, actual):
     list_of_auprs = find_GoTerm_auprs(predicted, actual)
     return np.mean(list_of_auprs)
 
+def calculate_macro_F(predicted, actual):
+    list_of_Fscores = find_GoTerm_FScores(predicted, actual)
+    return np.mean(list_of_Fscores)
+
 def calculate_micro_F1(predicted, actual):
     precision, recall,_ = metrics.precision_recall_curve(actual.ravel(), predicted.ravel(), pos_label=1)
     FScores = 2*precision*recall/(precision+recall)
@@ -56,6 +60,21 @@ def find_GoTerm_auprs(predicted, actual):
         column_aupr = metrics.average_precision_score(act, pred)
         list_of_auprs.append(column_aupr)
     return list_of_auprs
+
+def find_GoTerm_FScores(predicted, actual):
+    '''
+    This function generates a list of F scores.
+    The list has one F score  for each Go Term
+    '''
+    list_of_Fscores = []
+    for col in range(predicted.shape[1]):
+        pred = predicted[:,col]
+        act = actual[:,col]        
+        precision, recall,_ = metrics.precision_recall_curve(act, pred, pos_label=1)
+        FScores = 2*precision*recall/(precision+recall)
+        Fmax = max(FScores)
+        list_of_Fscores.append(Fmax)
+    return list_of_Fscores
 
 def AUC_parameters(org):
     plt.figure(figsize=[8,8])
@@ -194,8 +213,28 @@ def plot_GoTerm_Bars_AUPR(score_list, label, org, metric = 'AUPR'):
     plt.title(metric+'s of Go Terms: '+label+' - '+org, size=16)
     plt.yticks(np.arange(0, top_score+.1, 0.1))
     plt.show()
-    
-    
+
+
+def plot_GoTerm_Bars_Fscore(score_list, label, org, metric = 'F-Score'):
+    '''
+    score_list is a list of Fscores, one Fscore for each GoTerm. Length = # of GoTerms
+    @label corresponds to a model type -- e.g. 'FastText'
+    @org corresponds to an organism type -- e.g. 'Human'
+    '''
+    plt.figure(figsize=[10,8])
+    positions = np.arange(len(score_list))
+    mean_score = np.mean(score_list)
+    scores_sorted = np.flipud(np.sort(score_list))
+    top_score = scores_sorted[0]
+
+    barlist = plt.bar(positions, scores_sorted, align='center', alpha=0.6, width=1, edgecolor='blue')
+    plt.axhline(y=mean_score, color='navy', linestyle=':')
+    plt.tick_params(axis='x',bottom='off',labelbottom='off')
+    plt.annotate('Macro '+metric+' ('+str(round(mean_score,2))+')', xy=(8/10*len(score_list), mean_score+0.005))
+    plt.ylabel(metric, size=14)
+    plt.title(metric+'s of Go Terms: '+label+' - '+org, size=16)
+    plt.yticks(np.arange(0, top_score+.1, 0.1))
+    plt.show()
     
 # --------------------------------------------- Added a bunch of other evaluation metrics that may or may not be used--------
 def round_manual(data, threshold):
