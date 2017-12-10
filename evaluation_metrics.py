@@ -7,33 +7,44 @@ from sklearn.metrics import precision_score,recall_score,average_precision_score
 def calculate_AUC(predicted, actual):
     #Micro AUC
     #Inputs are 2-D numpy arrays
-    fpr, tpr, thresholds = metrics.roc_curve(actual.ravel(), predicted.ravel(), pos_label=1)
-    AUC = metrics.auc(fpr, tpr)
-    return AUC, fpr, tpr
+    try:
+        fpr, tpr, thresholds = metrics.roc_curve(actual.ravel(), predicted.ravel(), pos_label=1)
+        AUC = metrics.auc(fpr, tpr)
+        return AUC, fpr, tpr
+    except ValueError:
+        return -1,-1,-1
 
 def calculate_AUPR(predicted, actual):
     #Micro AUPR
     #Inputs are 2-D numpy arrays
-    AUPR = metrics.average_precision_score(actual.ravel(), predicted.ravel())
-    return AUPR
+    try:
+        AUPR = metrics.average_precision_score(actual.ravel(), predicted.ravel())
+        return AUPR
+    except:
+        return -1
 
 def calculate_macro_AUC(predicted, actual):
-    list_of_aucs = find_GoTerm_aucs(predicted, actual)
-    return np.mean(list_of_aucs)
+    try:
+        list_of_aucs = find_GoTerm_aucs(predicted, actual)
+        return np.mean(list_of_aucs)
+    except:
+        return -1
 
 def calculate_macro_AUPR(predicted, actual):
-    list_of_auprs = find_GoTerm_auprs(predicted, actual)
-    return np.mean(list_of_auprs)
-
-def calculate_macro_F(predicted, actual):
-    list_of_Fscores = find_GoTerm_FScores(predicted, actual)
-    return np.mean(list_of_Fscores)
+    try:
+        list_of_auprs = find_GoTerm_auprs(predicted, actual)
+        return np.mean(list_of_auprs)
+    except:
+        return -1
 
 def calculate_micro_F1(predicted, actual):
-    precision, recall,_ = metrics.precision_recall_curve(actual.ravel(), predicted.ravel(), pos_label=1)
-    FScores = 2*precision*recall/(precision+recall)
-    Fmax = max(FScores)
-    return Fmax
+    try:
+        precision, recall,_ = metrics.precision_recall_curve(actual.ravel(), predicted.ravel(), pos_label=1)
+        FScores = 2*precision*recall/(precision+recall)
+        Fmax = max(FScores)
+        return Fmax
+    except:
+        return -1
 
 def find_GoTerm_aucs(predicted, actual):
     '''
@@ -43,9 +54,10 @@ def find_GoTerm_aucs(predicted, actual):
     list_of_aucs = []
     for col in range(predicted.shape[1]):
         pred = predicted[:,col]
-        act = actual[:,col]
-        column_auc = metrics.roc_auc_score(act, pred)
-        list_of_aucs.append(column_auc)
+        act = actual[:, col]
+        if len(np.unique(act)) > 1:
+            column_auc = metrics.roc_auc_score(act, pred)
+            list_of_aucs.append(column_auc)
     return list_of_aucs
 
 def find_GoTerm_auprs(predicted, actual):
@@ -57,24 +69,10 @@ def find_GoTerm_auprs(predicted, actual):
     for col in range(predicted.shape[1]):
         pred = predicted[:,col]
         act = actual[:,col]
-        column_aupr = metrics.average_precision_score(act, pred)
-        list_of_auprs.append(column_aupr)
+        if len(np.unique(act)) > 1:
+            column_aupr = metrics.average_precision_score(act, pred)
+            list_of_auprs.append(column_aupr)
     return list_of_auprs
-
-def find_GoTerm_FScores(predicted, actual):
-    '''
-    This function generates a list of F scores.
-    The list has one F score  for each Go Term
-    '''
-    list_of_Fscores = []
-    for col in range(predicted.shape[1]):
-        pred = predicted[:,col]
-        act = actual[:,col]        
-        precision, recall,_ = metrics.precision_recall_curve(act, pred, pos_label=1)
-        FScores = 2*precision*recall/(precision+recall)
-        Fmax = max(FScores)
-        list_of_Fscores.append(Fmax)
-    return list_of_Fscores
 
 def AUC_parameters(org):
     plt.figure(figsize=[8,8])
@@ -84,7 +82,7 @@ def AUC_parameters(org):
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate', size=14)
     plt.ylabel('True Positive Rate', size=14)
-    plt.title('ROC Curves: '+org, size=20)
+    plt.title('ROC Curves for Models: '+org, size=20)
 
 def AUPR_parameters(org):
     plt.figure(figsize=[8,8])
@@ -122,41 +120,7 @@ def plot_AUPR_curve(predicted, actual, label, org):
     FmaxIndex = list(FScores).index(Fmax)
     plt.plot(recall, precision, lw=2, label=label+' (MicroAUPR = %0.2f, FMax = %0.2f)' % (AUPR, Fmax))
     plt.plot(recall[FmaxIndex], precision[FmaxIndex], '-bo', markersize=12)
-    plt.legend(loc="upper right")
-
-def plot_multiple_AUC_curves(predicted_list, actual, label_list, org):
-    #predicted_list: a list of 2-D prediction arrays. One from FastText, one from LSTM, etc.
-    #actual: 2-D array of outputs that is consistent across all model types
-    #Label_list corresponds to a list of model types as strings -- e.g. ['FastText', 'LSTM', 'GRU']
-    #org corresponds to an organism type -- e.g. 'Human'
-    ColorDict = {0:'blue', 1:'orange', 2:'green', 3: 'purple', 4: 'red', 5: 'turquoise'}
-    AUC_parameters(org)
-    for i in range(len(predicted_list)):
-        predicted = predicted_list[i]
-        AUC, fpr, tpr = calculate_AUC(predicted, actual)
-        co = ColorDict[i]
-        plt.plot(fpr, tpr, lw=2, color=co, label=label_list[i]+' (MicroAUC = %0.2f)' % AUC)
-        plt.legend(loc="lower right")
-
-def plot_multiple_AUPR_curves(predicted_list, actual, label_list, org):
-    #predicted_list: a list of 2-D prediction arrays. One from FastText, one from LSTM, etc.
-    #actual: 2-D array of outputs that is consistent across all model types
-    #Label_list corresponds to a list of model types as strings -- e.g. ['FastText', 'LSTM', 'GRU']
-    #org corresponds to an organism type -- e.g. 'Human'
-
-    ColorDict = {0:'blue', 1:'orange', 2:'green', 3: 'purple', 4: 'red', 5: 'turquoise'}
-    AUPR_parameters(org)
-    for i in range(len(predicted_list)):
-        predicted = predicted_list[i]
-        AUPR = calculate_AUPR(predicted, actual)
-        precision, recall,_ = metrics.precision_recall_curve(actual.ravel(), predicted.ravel(), pos_label=1)
-        FScores = 2*precision*recall/(precision+recall)
-        Fmax = max(FScores)
-        FmaxIndex = list(FScores).index(Fmax)
-        co = ColorDict[i]
-        plt.plot(recall, precision, lw=2, color=co, label=label_list[i]+' (MicroAUPR = %0.2f, FMax = %0.2f)' % (AUPR, Fmax))
-        plt.plot(recall[FmaxIndex], precision[FmaxIndex], color=co, marker='o', markersize=12)
-        plt.legend(loc="upper right")
+    plt.legend(loc="lower right")
 
 
 def plot_GoTerm_Bars(score_list, label, org, metric = 'AUC'):
@@ -177,7 +141,7 @@ def plot_GoTerm_Bars(score_list, label, org, metric = 'AUC'):
     for i in range(len(positions)):
         if colors[i] == 'red':
             barlist[i].set_color('salmon')
-        
+
     plt.axhline(y=mean_score-0.5, color='navy', linestyle=':')
     plt.axhline(y=0, color='k', linestyle='-')
     plt.tick_params(axis='x',bottom='off',labelbottom='off')
@@ -189,7 +153,7 @@ def plot_GoTerm_Bars(score_list, label, org, metric = 'AUC'):
     plt.yticks(np.arange(-0.5, 0.6, 0.1), np.arange(0, 1.1, 0.1))
     plt.show()
 
-    
+
 def plot_GoTerm_Bars_AUPR(score_list, label, org, metric = 'AUPR'):
     '''
     score_list is a list of AUPRs, one AUPR for each GoTerm. Length = # of GoTerms
@@ -204,7 +168,7 @@ def plot_GoTerm_Bars_AUPR(score_list, label, org, metric = 'AUPR'):
     top_score = scores_sorted[0]
 
     barlist = plt.bar(positions, scores_sorted, align='center', alpha=0.6, width=1, edgecolor='blue')
-        
+
     plt.axhline(y=mean_score, color='navy', linestyle=':')
     plt.tick_params(axis='x',bottom='off',labelbottom='off')
 
@@ -215,27 +179,7 @@ def plot_GoTerm_Bars_AUPR(score_list, label, org, metric = 'AUPR'):
     plt.show()
 
 
-def plot_GoTerm_Bars_Fscore(score_list, label, org, metric = 'F-Score'):
-    '''
-    score_list is a list of Fscores, one Fscore for each GoTerm. Length = # of GoTerms
-    @label corresponds to a model type -- e.g. 'FastText'
-    @org corresponds to an organism type -- e.g. 'Human'
-    '''
-    plt.figure(figsize=[10,8])
-    positions = np.arange(len(score_list))
-    mean_score = np.mean(score_list)
-    scores_sorted = np.flipud(np.sort(score_list))
-    top_score = scores_sorted[0]
 
-    barlist = plt.bar(positions, scores_sorted, align='center', alpha=0.6, width=1, edgecolor='blue')
-    plt.axhline(y=mean_score, color='navy', linestyle=':')
-    plt.tick_params(axis='x',bottom='off',labelbottom='off')
-    plt.annotate('Macro '+metric+' ('+str(round(mean_score,2))+')', xy=(8/10*len(score_list), mean_score+0.005))
-    plt.ylabel(metric, size=14)
-    plt.title(metric+'s of Go Terms: '+label+' - '+org, size=16)
-    plt.yticks(np.arange(0, top_score+.1, 0.1))
-    plt.show()
-    
 # --------------------------------------------- Added a bunch of other evaluation metrics that may or may not be used--------
 def round_manual(data, threshold):
     return (data >= threshold).astype(int)
@@ -266,7 +210,7 @@ def average_precision(predicted, actuals, threshold):
     predicted = round_manual(predicted.data.numpy(), threshold)
     non_zero_go_terms = np.count_nonzero((np.sum(actuals, axis=0)!=0).astype(int))
     return np.sum(precision_score(actuals, predicted, average=None))/non_zero_go_terms
-    
+
 def average_recall(predicted, actuals, threshold):
     """
     @param predicted: data type = Variable
